@@ -5,34 +5,58 @@ import { client } from "../../lib/apolloClient";
 import Layout from "../../components/Layout";
 import PostsList from "../../components/PostsList";
 
-// Dummy data
-import { category } from "../../dummy-data";
-
 export default function SingleCategory({ category }) {
-  return (
-    <Layout>
-      <h1>{parse(category.name)}</h1>
-      <PostsList posts={category.posts.nodes} />
-    </Layout>
-  );
+	return (
+		<Layout>
+			<h1>{parse(category.name)}</h1>
+			<PostsList posts={category.posts.nodes} />
+		</Layout>
+	);
 }
 
 export function getStaticPaths() {
-  return {
-    paths: [],
-    fallback: "blocking",
-  };
+	return {
+		paths: [],
+		fallback: "blocking",
+	};
 }
 
+const GET_CATEGORY = gql`
+	query getCategory($slugId: ID!) {
+		category(id: $slugId, idType: SLUG) {
+			name
+			posts {
+				nodes {
+					databaseId
+					title
+					excerpt
+					uri
+					featuredImage {
+						node {
+							sourceUrl
+							altText
+						}
+					}
+				}
+			}
+		}
+	}
+`;
+
 export async function getStaticProps(context) {
-  const { slug } = context.params;
+	const { slug } = context.params;
+	const response = await client.query({
+		query: GET_CATEGORY,
+		variables: { slugId: slug },
+	});
+	const category = response?.data?.category;
 
-  if (!category) {
-    return { notFound: true };
-  }
+	if (!category) {
+		return { notFound: true };
+	}
 
-  return {
-    props: { category },
-    revalidate: 60,
-  };
+	return {
+		props: { category },
+		revalidate: 60,
+	};
 }
